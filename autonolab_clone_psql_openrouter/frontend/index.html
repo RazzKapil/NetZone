@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Prompt2App – AutonoLab Clone</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            /* Add a soft, abstract background image with a gradient overlay */
+            background: 
+                linear-gradient(120deg, rgba(240,244,248,0.95) 0%, rgba(58,122,254,0.15) 100%),
+                url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80') no-repeat center center fixed;
+            background-size: cover;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 420px;
+            margin: 40px auto;
+            background: rgba(255,255,255,0.92);
+            border-radius: 18px;
+            box-shadow: 0 6px 32px rgba(0, 0, 0, 0.12);
+            padding: 32px 28px 24px 28px;
+            backdrop-filter: blur(2px);
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 24px;
+        }
+
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 12px 0;
+            cursor: pointer;
+            border-radius: 12px 12px 0 0;
+            background: #e9f0fa;
+            color: #3a4a5e;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .tab.active {
+            background: #3a7afe;
+            color: #fff;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            color: #3a4a5e;
+            font-size: 15px;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #c3d0e6;
+            border-radius: 8px;
+            font-size: 15px;
+            background: #f7fafd;
+            margin-bottom: 2px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #3a7afe;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #265fd5;
+        }
+
+        #result {
+            background: #f7fafd;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 18px;
+            min-height: 60px;
+            font-family: 'Fira Mono', monospace;
+            font-size: 14px;
+            color: #2d3a4a;
+            word-break: break-all;
+        }
+
+        #exportLink {
+            display: inline-block;
+            margin-top: 12px;
+            color: #3a7afe;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        #exportLink:hover {
+            text-decoration: underline;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .status {
+            margin-bottom: 10px;
+            color: #2d8a34;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        .error {
+            color: #d12a2a;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="tabs">
+            <div class="tab active" id="loginTab" onclick="showTab('login')">Login</div>
+            <div class="tab" id="generateTab" onclick="showTab('generate')">Generate Tool</div>
+        </div>
+
+        <div id="loginSection">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" placeholder="Enter your email" autocomplete="username" />
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="Enter your password" autocomplete="current-password" />
+            </div>
+            <button onclick="login()">Login</button>
+            <div class="status" id="loginStatus"></div>
+        </div>
+
+        <div id="generateSection" class="hidden">
+            <div class="form-group">
+                <label for="prompt">Prompt</label>
+                <input type="text" id="prompt" placeholder="Describe your tool idea..." />
+            </div>
+            <div class="form-group">
+                <label for="tool_type">Tool Type</label>
+                <select id="tool_type">
+                    <option value="chatbot">Chatbot</option>
+                    <option value="image-gen">Image Generator</option>
+                </select>
+            </div>
+            <button onclick="generateApp()">Generate</button>
+            <div class="status" id="generateStatus"></div>
+            <div id="result"></div>
+            <a id="exportLink" href="#" target="_blank" class="hidden">Download HTML</a>
+        </div>
+    </div>
+
+    <script>
+        let token = "";
+
+        function showTab(tab) {
+            document.getElementById('loginTab').classList.remove('active');
+            document.getElementById('generateTab').classList.remove('active');
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('generateSection').classList.add('hidden');
+            if (tab === 'login') {
+                document.getElementById('loginTab').classList.add('active');
+                document.getElementById('loginSection').classList.remove('hidden');
+            } else {
+                document.getElementById('generateTab').classList.add('active');
+                document.getElementById('generateSection').classList.remove('hidden');
+            }
+        }
+
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const status = document.getElementById('loginStatus');
+            status.textContent = '';
+            status.classList.remove('error');
+            try {
+                const res = await fetch('https://humble-space-train-9457wp95q9j3x9pv-5000.app.github.dev/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                if (data.status === "success") {
+                    token = data.token;
+                    status.textContent = "Login successful!";
+                    status.classList.remove('error');
+                    setTimeout(() => {
+                        showTab('generate');
+                        status.textContent = '';
+                    }, 800);
+                } else {
+                    status.textContent = "Login failed. Please check your credentials.";
+                    status.classList.add('error');
+                }
+            } catch (e) {
+                status.textContent = "Network error. Try again.";
+                status.classList.add('error');
+            }
+        }
+
+        async function generateApp() {
+            const prompt = document.getElementById('prompt').value;
+            const tool_type = document.getElementById('tool_type').value;
+            const status = document.getElementById('generateStatus');
+            const resultDiv = document.getElementById('result');
+            const exportLink = document.getElementById('exportLink');
+            status.textContent = '';
+            status.classList.remove('error');
+            resultDiv.textContent = '';
+            exportLink.classList.add('hidden');
+            try {
+                status.textContent = "Generating, please wait...";
+                const res = await fetch('https://humble-space-train-9457wp95q9j3x9pv-5000.app.github.dev/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt, tool_type })
+                });
+                const data = await res.json();
+                if (data.code) {
+                    resultDiv.textContent = data.code;
+                    exportLink.href = `https://humble-space-train-9457wp95q9j3x9pv-5000.app.github.dev/api/export/${data.file_id}`;
+                    exportLink.classList.remove('hidden');
+                    status.textContent = "Tool generated!";
+                } else {
+                    status.textContent = "Generation failed.";
+                    status.classList.add('error');
+                }
+            } catch (e) {
+                status.textContent = "Network error. Try again.";
+                status.classList.add('error');
+            }
+        }
+    </script>
+</body>
+
+</html>
